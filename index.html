@@ -1,90 +1,59 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>IA FINAL FIX</title>
-    <style>
-        body { background: #050505; color: white; font-family: sans-serif; margin: 0; display: flex; flex-direction: column; height: 100vh; }
-        .header { background: #667eea; padding: 15px; text-align: center; font-weight: bold; }
-        #chat { flex: 1; overflow-y: auto; padding: 15px; display: flex; flex-direction: column; gap: 10px; }
-        .msg { padding: 10px 15px; border-radius: 15px; max-width: 80%; word-wrap: break-word; }
-        .user { align-self: flex-end; background: #667eea; }
-        .bot { align-self: flex-start; background: #222; border: 1px solid #444; }
-        .input-box { padding: 15px; background: #111; display: flex; gap: 10px; }
-        input { flex: 1; padding: 12px; border-radius: 10px; border: none; background: #222; color: white; outline: none; font-size: 16px; }
-        button { background: #667eea; border: none; color: white; padding: 10px 15px; border-radius: 10px; cursor: pointer; }
-        .config-layer { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #000; z-index: 100; display: flex; flex-direction: column; padding: 30px; box-sizing: border-box; }
-        .hidden { display: none !important; }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MI IA PRO</title>
+<style>
+    body { background: #050505; color: white; font-family: sans-serif; margin: 0; display: flex; flex-direction: column; height: 100vh; }
+    .header { background: #667eea; padding: 15px; text-align: center; font-weight: bold; }
+    #chat { flex: 1; overflow-y: auto; padding: 15px; display: flex; flex-direction: column; gap: 10px; }
+    .msg { padding: 10px 15px; border-radius: 15px; max-width: 80%; word-wrap: break-word; }
+    .user { align-self: flex-end; background: #667eea; }
+    .bot { align-self: flex-start; background: #222; border: 1px solid #444; }
+    .input-box { padding: 15px; background: #111; display: flex; gap: 10px; }
+    input { flex: 1; padding: 12px; border-radius: 10px; border: none; background: #222; color: white; outline: none; font-size: 16px; }
+    button { background: #667eea; border: none; color: white; padding: 10px 15px; border-radius: 10px; cursor: pointer; }
+</style>
 </head>
 <body>
-
-<div id="setup" class="config-layer">
-    <h2>Configuración</h2>
-    <p>Introduce tu API Key de Groq:</p>
-    <input type="password" id="apiKeyInput" placeholder="gsk_xxxxxxxxxxxx" style="width: 100%; margin-bottom: 20px; background: #111; border: 1px solid #444;">
-    <button onclick="startApp()" style="width: 100%; padding: 15px;">GUARDAR Y EMPEZAR</button>
-</div>
-
 <div class="header">MI ASISTENTE IA</div>
 <div id="chat"></div>
 <div class="input-box">
-    <input type="text" id="userInput" placeholder="Escribe un mensaje...">
-    <button onclick="sendMsg()">➤</button>
+  <input type="text" id="userInput" placeholder="Escribe un mensaje...">
+  <button onclick="sendMsg()">➤</button>
 </div>
-
 <script>
-    localStorage.clear(); 
-    let API_KEY = "";
-
-    function startApp() {
-        const key = document.getElementById('apiKeyInput').value.trim();
-        if(key.length < 10) return alert("Pon una clave válida");
-        API_KEY = key;
-        document.getElementById('setup').classList.add('hidden');
+async function sendMsg() {
+  const input = document.getElementById('userInput');
+  const text = input.value.trim();
+  if (!text) return;
+  addMsg('user', text);
+  input.value = '';
+  try {
+    const response = await fetch('/api/chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ message: text })
+    });
+    const data = await response.json();
+    if (data.reply) {
+      addMsg('bot', data.reply);
+    } else {
+      addMsg('bot', "❌ Error: " + (data.error || "Error desconocido"));
     }
-
-    async function sendMsg() {
-        const input = document.getElementById('userInput');
-        const text = input.value.trim();
-        if(!text || !API_KEY) return;
-
-        addMsg('user', text);
-        input.value = '';
-
-        try {
-            const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-                method: 'POST',
-                headers: {
-                    'Authorization': 'Bearer ' + API_KEY,
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                    model: "llama-3.1-8b-instant", 
-                    messages: [{ role: "user", content: text }]
-                })
-            });
-
-            const data = await response.json();
-            if(data.choices) {
-                addMsg('bot', data.choices[0].message.content);
-            } else {
-                addMsg('bot', "❌ ERROR: " + data.error.message);
-            }
-        } catch (e) {
-            addMsg('bot', "❌ Error de conexión");
-        }
-    }
-
-    function addMsg(role, text) {
-        const div = document.createElement('div');
-        div.className = 'msg ' + role;
-        div.innerText = text;
-        const chatArea = document.getElementById('chat');
-        chatArea.appendChild(div);
-        chatArea.scrollTop = chatArea.scrollHeight;
-    }
+  } catch (err) {
+    addMsg('bot', "❌ Error de conexión con el servidor");
+  }
+}
+function addMsg(role, text) {
+  const div = document.createElement('div');
+  div.className = 'msg ' + role;
+  div.innerText = text;
+  const chat = document.getElementById('chat');
+  chat.appendChild(div);
+  chat.scrollTop = chat.scrollHeight;
+}
 </script>
 </body>
 </html>
