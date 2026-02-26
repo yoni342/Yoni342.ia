@@ -2,165 +2,88 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>IA Chat - Android OK</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>IA FINAL FIX</title>
     <style>
-        :root { --p: #667eea; --bg: #0b0b1a; --c: #16162d; --txt: #ffffff; }
-        * { margin: 0; padding: 0; box-sizing: border-box; font-family: sans-serif; }
-        body { background: var(--bg); color: var(--txt); height: 100vh; display: flex; flex-direction: column; }
-        
-        /* Ajustes para celular */
-        .header { background: var(--p); padding: 15px; display: flex; justify-content: space-between; align-items: center; }
-        .admin-btn { background: rgba(0,0,0,0.3); border: none; color: white; padding: 10px; border-radius: 8px; font-size: 14px; }
-        
-        .chat-container { flex: 1; overflow-y: auto; padding: 15px; display: flex; flex-direction: column; gap: 12px; }
-        .msg { max-width: 85%; padding: 12px; border-radius: 12px; font-size: 16px; line-height: 1.4; }
-        .msg.user { align-self: flex-end; background: var(--p); }
-        .msg.bot { align-self: flex-start; background: var(--c); border: 1px solid #2a2a4a; }
-
-        .input-area { padding: 15px; background: var(--c); display: flex; gap: 8px; }
-        textarea { flex: 1; background: #000; border: 1px solid #333; color: white; padding: 12px; border-radius: 10px; resize: none; font-size: 16px; }
-        .send-btn { background: var(--p); border: none; color: white; padding: 0 15px; border-radius: 10px; font-weight: bold; }
-
-        /* Modal Pantalla Completa para Android */
-        .modal { display: none; position: fixed; top:0; left:0; width:100%; height:100%; background: #000; z-index: 1000; flex-direction: column; padding: 20px; }
-        .modal.active { display: flex; }
-        input, select { width: 100%; margin: 15px 0; padding: 12px; background: #111; color: white; border: 1px solid #444; border-radius: 8px; font-size: 16px; }
-        .btn-save { background: var(--p); color: white; padding: 15px; border: none; border-radius: 8px; font-weight: bold; font-size: 16px; }
+        body { background: #050505; color: white; font-family: sans-serif; margin: 0; display: flex; flex-direction: column; height: 100vh; }
+        .header { background: #667eea; padding: 15px; text-align: center; font-weight: bold; }
+        #chat { flex: 1; overflow-y: auto; padding: 15px; display: flex; flex-direction: column; gap: 10px; }
+        .msg { padding: 10px 15px; border-radius: 15px; max-width: 80%; word-wrap: break-word; }
+        .user { align-self: flex-end; background: #667eea; }
+        .bot { align-self: flex-start; background: #222; border: 1px solid #444; }
+        .input-box { padding: 15px; background: #111; display: flex; gap: 10px; }
+        input { flex: 1; padding: 12px; border-radius: 10px; border: none; background: #222; color: white; outline: none; font-size: 16px; }
+        button { background: #667eea; border: none; color: white; padding: 10px 15px; border-radius: 10px; cursor: pointer; }
+        .config-layer { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #000; z-index: 100; display: flex; flex-direction: column; padding: 30px; box-sizing: border-box; }
+        .hidden { display: none !important; }
     </style>
 </head>
 <body>
 
-<div class="header">
-    <strong>🤖 MI IA</strong>
-    <button class="admin-btn" onclick="openCfg()">⚙️ AJUSTES</button>
+<div id="setup" class="config-layer">
+    <h2>Configuración</h2>
+    <p>Introduce tu API Key de Groq:</p>
+    <input type="password" id="apiKeyInput" placeholder="gsk_xxxxxxxxxxxx" style="width: 100%; margin-bottom: 20px; background: #111; border: 1px solid #444;">
+    <button onclick="startApp()" style="width: 100%; padding: 15px;">GUARDAR Y EMPEZAR</button>
 </div>
 
-<div class="chat-container" id="chat">
-    <div id="welcome" style="text-align:center; padding: 40px 20px;">
-        <h3>¡Bienvenido!</h3>
-        <p style="color:#888; margin-top:10px;">Configura tu API Key en Ajustes para empezar a chatear.</p>
-    </div>
-</div>
-
-<div class="input-area">
-    <textarea id="uInput" placeholder="Escribe aquí..." rows="1"></textarea>
-    <button class="send-btn" onclick="send()">ENVIAR</button>
-</div>
-
-<!-- CONFIGURACIÓN -->
-<div class="modal" id="mCfg">
-    <h2 style="margin-bottom:20px;">Configuración</h2>
-    
-    <label>Tu Groq API Key:</label>
-    <input type="password" id="mKey" placeholder="Pega tu gsk_ aquí">
-    
-    <label>Modelo de Inteligencia:</label>
-    <select id="mModel">
-        <option value="llama-3.1-8b-instant">Llama 3.1 8B (Rápido)</option>
-        <option value="llama-3.3-70b-versatile">Llama 3.3 70B (Potente)</option>
-    </select>
-
-    <button class="btn-save" onclick="saveCfg()">GUARDAR Y EMPEZAR</button>
-    <button onclick="closeCfg()" style="background:none; color:#888; border:none; margin-top:20px; text-decoration:underline;">Cerrar sin guardar</button>
+<div class="header">MI ASISTENTE IA</div>
+<div id="chat"></div>
+<div class="input-box">
+    <input type="text" id="userInput" placeholder="Escribe un mensaje...">
+    <button onclick="sendMsg()">➤</button>
 </div>
 
 <script>
-    // --- LIMPIEZA NUCLEAR PARA ANDROID ---
-    // Esto borra memorias de códigos anteriores que tengan el error
-    if (localStorage.getItem('ia_pro_config')) {
-        let old = JSON.parse(localStorage.getItem('ia_pro_config'));
-        if (old.model && old.model.includes('8192')) {
-            localStorage.clear(); // Borrado total si detecta el error viejo
-            console.log("Memoria corrupta borrada.");
-        }
+    localStorage.clear(); 
+    let API_KEY = "";
+
+    function startApp() {
+        const key = document.getElementById('apiKeyInput').value.trim();
+        if(key.length < 10) return alert("Pon una clave válida");
+        API_KEY = key;
+        document.getElementById('setup').classList.add('hidden');
     }
 
-    let CONFIG = {
-        key: '',
-        model: 'llama-3.1-8b-instant',
-        history: []
-    };
-
-    // Cargar datos limpios
-    window.onload = () => {
-        const saved = localStorage.getItem('ia_clean_v2');
-        if (saved) {
-            CONFIG = JSON.parse(saved);
-        }
-    };
-
-    async function send() {
-        const input = document.getElementById('uInput');
+    async function sendMsg() {
+        const input = document.getElementById('userInput');
         const text = input.value.trim();
-        
-        if (!text) return;
-        if (!CONFIG.key) return alert("Primero pon tu API Key en Ajustes");
+        if(!text || !API_KEY) return;
 
-        document.getElementById('welcome').style.display = 'none';
-        addUI('user', text);
-        CONFIG.history.push({ role: 'user', content: text });
+        addMsg('user', text);
         input.value = '';
 
         try {
-            const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+            const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
                 method: 'POST',
-                headers: { 
-                    'Authorization': `Bearer ${CONFIG.key}`, 
-                    'Content-Type': 'application/json' 
+                headers: {
+                    'Authorization': 'Bearer ' + API_KEY,
+                    'Content-Type': 'application/json'
                 },
                 body: JSON.stringify({
-                    model: CONFIG.model,
-                    messages: [
-                        { role: 'system', content: 'Responde en español de forma útil.' },
-                        ...CONFIG.history.slice(-6)
-                    ]
+                    model: "llama-3.1-8b-instant", 
+                    messages: [{ role: "user", content: text }]
                 })
             });
 
-            const data = await res.json();
-            
-            if (data.choices) {
-                const responseText = data.choices[0].message.content;
-                addUI('bot', responseText);
-                CONFIG.history.push({ role: 'assistant', content: responseText });
-                save();
+            const data = await response.json();
+            if(data.choices) {
+                addMsg('bot', data.choices[0].message.content);
             } else {
-                // Si el error persiste, lo veremos aquí escrito en el chat
-                addUI('bot', "❌ ERROR DE GROQ: " + data.error.message);
+                addMsg('bot', "❌ ERROR: " + data.error.message);
             }
         } catch (e) {
-            addUI('bot', "❌ Error de conexión. Verifica tu internet.");
+            addMsg('bot', "❌ Error de conexión");
         }
     }
 
-    function addUI(role, txt) {
-        const d = document.createElement('div');
-        d.className = `msg ${role}`;
-        d.innerText = txt;
-        const c = document.getElementById('chat');
-        c.appendChild(d);
-        c.scrollTop = c.scrollHeight;
-    }
-
-    function openCfg() {
-        document.getElementById('mKey').value = CONFIG.key;
-        document.getElementById('mModel').value = CONFIG.model;
-        document.getElementById('mCfg').classList.add('active');
-    }
-
-    function closeCfg() { document.getElementById('mCfg').classList.remove('active'); }
-
-    function saveCfg() {
-        CONFIG.key = document.getElementById('mKey').value.trim();
-        CONFIG.model = document.getElementById('mModel').value;
-        save();
-        closeCfg();
-        alert("Configuración guardada. ¡Ya puedes chatear!");
-    }
-
-    function save() {
-        localStorage.setItem('ia_clean_v2', JSON.stringify(CONFIG));
+    function addMsg(role, text) {
+        const div = document.createElement('div');
+        div.className = 'msg ' + role;
+        div.innerText = text;
+        const chatArea = document.getElementById('chat');
+        chatArea.appendChild(div);
+        chatArea.scrollTop = chatArea.scrollHeight;
     }
 </script>
 </body>
